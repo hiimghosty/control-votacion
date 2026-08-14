@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Conteo de votos</title>
+<style>
+  :root{
+    --bg:#0E1420;--panel:#18202E;--panel-2:#1F2A3B;--line:#2A3547;
+    --text:#EAF0F8;--muted:#93A0B4;--ok:#34D399;--warn:#F59E0B;--danger:#F87171;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:24px 16px 48px;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:980px;margin:0 auto}
+
+  header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:14px}
+  h1{font-size:22px;font-weight:700;letter-spacing:.2px}
+
+  .warn-banner{display:flex;align-items:flex-start;gap:10px;background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.5);color:#FECACA;border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:13px;line-height:1.5}
+  .warn-banner .ico{font-weight:800;color:var(--danger);flex:none}
+  .warn-banner b{color:#FCA5A5}
+
+  .cuadre{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:14px}
+  .cuadre .pair{color:var(--muted)}
+  .cuadre .pair b{color:var(--text);font-variant-numeric:tabular-nums;font-size:18px;margin-left:5px}
+  .cuadre .cb{margin-left:auto;padding:5px 12px;border-radius:99px;font-size:13px;font-weight:700;border:1px solid var(--line)}
+  .cuadre .cb.ok{color:var(--ok);border-color:rgba(52,211,153,.4);background:rgba(52,211,153,.08)}
+  .cuadre .cb.diff{color:var(--warn);border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.08)}
+  .cuadre .hint{flex-basis:100%;font-size:12px;color:var(--muted)}
+
+  .mesa-strip{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:13px}
+  .mesa-strip .k{color:var(--muted)}
+  .mesa-strip .v{font-weight:600}
+  .badge{padding:3px 10px;border-radius:99px;font-size:12px;font-weight:700;border:1px solid var(--line)}
+  .badge.open{color:var(--ok);border-color:rgba(52,211,153,.4);background:rgba(52,211,153,.08)}
+  .badge.closed{color:var(--danger);border-color:rgba(248,113,113,.4);background:rgba(248,113,113,.08)}
+  .mesa-strip .close-btn{margin-left:auto;background:transparent;border:1px solid rgba(248,113,113,.5);color:var(--danger);padding:8px 14px;border-radius:9px;font-weight:700;font-size:13px;cursor:pointer}
+  .mesa-strip .close-btn:hover{background:rgba(248,113,113,.1)}
+
+  .setup{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:18px}
+  .setup h2{font-size:16px;margin-bottom:4px}
+  .setup p{color:var(--muted);font-size:13px;margin-bottom:16px}
+  .setup .sub-h{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:6px 0 10px;border-top:1px solid var(--line);padding-top:14px}
+  .fields{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:12px}
+  .field{flex:1;min-width:200px;display:flex;flex-direction:column;gap:6px}
+  .field label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:flex;align-items:center;gap:7px}
+  .field label .dot{width:10px;height:10px;border-radius:50%}
+  .field input{background:var(--panel-2);border:1px solid var(--line);border-radius:9px;color:var(--text);padding:11px 12px;font-size:15px;font-family:inherit}
+  .field input:focus{outline:none;border-color:var(--muted)}
+  .seg{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+  .seg button{padding:10px 14px;border-radius:9px;border:1px solid var(--line);background:var(--panel-2);color:var(--muted);font-weight:600;font-size:14px;cursor:pointer;transition:filter .15s,border-color .15s}
+  .seg button:hover{border-color:var(--muted)}
+  .seg button.active{background:var(--ok);color:#06231A;border-color:transparent}
+  .open-btn{background:var(--ok);color:#06231A;border:none;border-radius:10px;padding:12px 22px;font-size:15px;font-weight:700;cursor:pointer;margin-top:6px}
+  .open-btn:hover{filter:brightness(1.06)}
+  .lock-hint{font-size:12px;color:var(--muted);margin-top:10px}
+
+  .backup{display:flex;flex-wrap:wrap;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:18px}
+  .status{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-right:auto}
+  .status .led{width:9px;height:9px;border-radius:50%;background:var(--muted);flex:none}
+  .status.on .led{background:var(--ok);box-shadow:0 0 0 3px rgba(52,211,153,.18)}
+  .status.warn .led{background:var(--warn)}
+  .status b{color:var(--text);font-weight:600}
+  .backup button{font-family:inherit;cursor:pointer;border-radius:9px;font-weight:600;font-size:13px;padding:8px 12px;border:1px solid var(--line);background:var(--panel-2);color:var(--text);transition:filter .15s,border-color .15s}
+  .backup button:hover{border-color:var(--muted)}
+  .backup button.primary{background:var(--ok);color:#06231A;border-color:transparent}
+  input[type=file]{display:none}
+
+  .race{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px;position:relative}
+  .race-head{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+  .race-head h2{font-size:17px;font-weight:700}
+  .race-head .sub{margin-left:auto;font-size:13px;color:var(--muted)}
+  .race-head .sub b{color:var(--text);font-variant-numeric:tabular-nums;font-size:16px}
+  .race-body{display:flex;flex-wrap:wrap;gap:18px}
+  .tally{flex:1;min-width:300px;display:grid;grid-template-columns:1fr 1fr;gap:12px;position:relative}
+  .tally.locked{opacity:.5;pointer-events:none;filter:grayscale(.3)}
+  .card{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:13px;position:relative;overflow:hidden}
+  .card .accent{position:absolute;top:0;left:0;right:0;height:4px}
+  .name-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .dot{width:11px;height:11px;border-radius:50%;flex:none}
+  .name{font-size:14px;font-weight:600;word-break:break-word;line-height:1.2}
+  .count{font-variant-numeric:tabular-nums;font-size:34px;font-weight:800;line-height:1;letter-spacing:-1px}
+  .pct{color:var(--muted);font-size:13px;margin-top:3px;font-variant-numeric:tabular-nums}
+  .bar{height:5px;border-radius:99px;background:rgba(0,0,0,.25);margin-top:10px;overflow:hidden}
+  .bar>span{display:block;height:100%;width:0;border-radius:99px;transition:width .35s}
+  .actions{display:flex;gap:7px;margin-top:11px}
+  button{font-family:inherit;cursor:pointer;border:none;border-radius:9px;font-weight:700;transition:transform .05s,filter .15s}
+  button:active{transform:translateY(1px)}
+  .add{flex:1;padding:10px;font-size:15px;color:#0B1220}
+  .sub-btn{width:42px;padding:10px;font-size:15px;background:var(--panel);color:var(--muted);border:1px solid var(--line)}
+  .sub-btn:hover{color:var(--text)}
+  .add:hover{filter:brightness(1.06)}
+
+  .race-chart{display:flex;flex-direction:column;align-items:center;gap:12px;min-width:220px}
+  .pie-holder{position:relative;width:170px;height:170px;flex:none}
+  svg{display:block;transform:rotate(-90deg)}
+  .pie-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
+  .pie-center .n{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1}
+  .pie-center .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:3px}
+  .legend{display:flex;flex-direction:column;gap:7px;width:100%}
+  .leg-row{display:flex;align-items:center;gap:9px;font-size:13px}
+  .leg-row .dot{width:12px;height:12px}
+  .leg-row .lname{flex:1;word-break:break-word}
+  .leg-row .lval{font-variant-numeric:tabular-nums;color:var(--muted)}
+  .leg-row .lval b{color:var(--text)}
+
+  .lock-note{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--muted);pointer-events:none;text-align:center;padding:10px}
+
+  .log-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 4px 4px;margin-bottom:18px}
+  .log-head{display:flex;align-items:center;justify-content:space-between;padding:0 12px 12px;flex-wrap:wrap;gap:8px}
+  .log-head h3{font-size:15px}
+  .log-head .meta{font-size:12px;color:var(--muted)}
+  .log-head .meta b{color:var(--text)}
+  .log-scroll{max-height:280px;overflow:auto;border-top:1px solid var(--line)}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:8px 12px;white-space:nowrap}
+  th{position:sticky;top:0;background:var(--panel);color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--line)}
+  tbody tr:nth-child(even){background:rgba(255,255,255,.02)}
+  td.num{font-variant-numeric:tabular-nums}
+  .ev{font-weight:700}
+  .ev.apertura{color:var(--ok)}
+  .ev.cierre{color:var(--danger)}
+  .ev.imp{color:var(--warn)}
+  .delta.pos{color:var(--ok)}
+  .delta.neg{color:var(--warn)}
+  .log-empty{color:var(--muted);font-size:13px;text-align:center;padding:22px}
+
+  footer{margin-top:6px;display:flex;justify-content:center}
+  .reset{background:transparent;border:1px solid rgba(248,113,113,.4);color:var(--danger);padding:10px 18px;font-size:13px;border-radius:10px}
+  .reset:hover{background:rgba(248,113,113,.08)}
+
+  .hidden{display:none!important}
+  @media (max-width:620px){.tally{grid-template-columns:1fr 1fr}.count{font-size:30px}}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><h1>Conteo de votos — Decano y Vice decano</h1></header>
+
+  <div class="warn-banner hidden" id="warnBanner"><span class="ico">⚠</span><div id="warnText"></div></div>
+
+  <div class="cuadre" id="cuadre">
+    <span class="pair">Votantes — Decano:<b id="cuDec">0</b></span>
+    <span class="pair">Vice decano:<b id="cuVice">0</b></span>
+    <span class="cb ok" id="cuBadge">Cuadra</span>
+    <span class="hint" id="cuHint">Cada votante suma uno en Decano y uno en Vice decano: ambos totales deben terminar iguales.</span>
+  </div>
+
+  <div class="mesa-strip hidden" id="mesaStrip">
+    <span><span class="k">Mesa:</span> <span class="v" id="mMesa">—</span></span>
+    <span><span class="k">Elección:</span> <span class="v" id="mAlcance">—</span></span>
+    <span><span class="k">Operador:</span> <span class="v" id="mOperador">—</span></span>
+    <span><span class="k">Apertura:</span> <span class="v" id="mApertura">—</span></span>
+    <span id="mCierreWrap" class="hidden"><span class="k">Cierre:</span> <span class="v" id="mCierre">—</span></span>
+    <span class="badge open" id="mBadge">Abierta</span>
+    <button class="close-btn" id="closeMesa">Cerrar mesa</button>
+  </div>
+
+  <div class="setup" id="setup">
+    <h2>Apertura de mesa</h2>
+    <p>Configura la mesa, el alcance y los candidatos. Al abrir se registra la hora de inicio y se habilita el conteo.</p>
+    <div class="fields">
+      <div class="field">
+        <label for="inMesa">Mesa / Acta (obligatorio)</label>
+        <input id="inMesa" type="text" placeholder="Ej: Mesa 042 — Facultad" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="inOperador">Operador (opcional)</label>
+        <input id="inOperador" type="text" placeholder="Nombre de quien cuenta" autocomplete="off">
+      </div>
+    </div>
+
+    <div class="sub-h">¿Qué se cuenta en esta mesa?</div>
+    <div class="seg" id="scopeSeg">
+      <button type="button" data-scope="ambos" class="active">Ambas elecciones</button>
+      <button type="button" data-scope="decano">Solo Decano</button>
+      <button type="button" data-scope="vice">Solo Vice decano</button>
+    </div>
+    <div class="lock-hint">La elección no seleccionada queda desactivada. El alcance se fija al abrir la mesa.</div>
+
+    <div id="candGroups"></div>
+    <button class="open-btn" id="openMesa">Abrir mesa e iniciar conteo</button>
+    <div class="lock-hint">Los nombres de los candidatos se pueden editar solo aquí. Una vez abierta la mesa quedan bloqueados.</div>
+  </div>
+
+  <div class="backup">
+    <div class="status" id="status"><span class="led"></span><span id="statusText">Guardado automático activo en este navegador</span></div>
+    <button class="primary" id="connect">Activar backup CSV</button>
+    <button id="download">Descargar acta CSV</button>
+    <button id="importBtn">Importar CSV</button>
+    <input type="file" id="importFile" accept=".csv,text/csv">
+  </div>
+
+  <div id="races"></div>
+
+  <div class="log-card">
+    <div class="log-head">
+      <h3>Bitácora de eventos</h3>
+      <span class="meta" id="logMeta">0 eventos</span>
+    </div>
+    <div class="log-scroll">
+      <table>
+        <thead><tr><th>#</th><th>Hora</th><th>Evento</th><th>Campo</th><th>Δ</th><th>Total D / V</th></tr></thead>
+        <tbody id="logBody"></tbody>
+      </table>
+      <div class="log-empty" id="logEmpty">Sin eventos todavía.</div>
+    </div>
+  </div>
+
+  <footer><button class="reset" id="reset">Nueva mesa (borra todo)</button></footer>
+</div>
+
+<!-- ===== conteo.js embebido: versión standalone de un solo archivo. =====
+     La lógica es una copia textual de conteo.js (no se reescribe nada acá).
+     Si conteo.js cambia, regenerar este archivo en vez de editar la lógica aquí. -->
+<script>
+/*
+ * conteo.js — Lógica pura del conteo de votos (Decano / Vice decano).
+ *
+ * No toca el DOM, ni localStorage, ni el navegador: solo funciones que reciben
+ * datos y devuelven datos. Por eso se puede probar con Node directamente.
+ *
+ * Se usa en dos entornos:
+ *   - Navegador:  <script src="conteo.js"><\/script>  ->  window.Conteo
+ *   - Node/tests: const C = require("./conteo.js");
+ *
+ * El estado ("state") es un objeto plano con esta forma:
+ *   { mesa, operador, scope, names, opened, closed, openedISO, closedISO,
+ *     seq, votes, events }
+ * y cada evento de la bitácora:
+ *   { seq, iso, local, evento, campo, delta, v, tDec, tVic, nota }
+ */
+(function (root, factory) {
+  if (typeof module === "object" && module.exports) module.exports = factory();
+  else root.Conteo = factory();
+})(typeof self !== "undefined" ? self : this, function () {
+  "use strict";
+
+  /* ===== modelo: dos elecciones ===== */
+  const RACES = [
+    { key: "decano", label: "Decano", cats: [
+      { key: "dec_a", def: "Candidato A", color: "#3B82F6", editable: true },
+      { key: "dec_b", def: "Candidato B", color: "#8B5CF6", editable: true },
+      { key: "dec_blanco", def: "Voto en blanco", color: "#E5E7EB", editable: false },
+      { key: "dec_nulo", def: "Voto nulo", color: "#9CA3AF", editable: false },
+    ]},
+    { key: "vice", label: "Vice decano", cats: [
+      { key: "vic_c", def: "Candidato C", color: "#F59E0B", editable: true },
+      { key: "vic_d", def: "Candidato D", color: "#EF4444", editable: true },
+      { key: "vic_blanco", def: "Voto en blanco", color: "#E5E7EB", editable: false },
+      { key: "vic_nulo", def: "Voto nulo", color: "#9CA3AF", editable: false },
+    ]},
+  ];
+  const ALL = RACES.flatMap(r => r.cats.map(c => ({ ...c, race: r.key })));
+  const CATKEYS = ALL.map(c => c.key);
+  const catOf = k => ALL.find(c => c.key === k) || { def: "", editable: false, race: "" };
+  const raceOf = k => RACES.find(r => r.key === catOf(k).race) || { label: "" };
+  const editableCats = ALL.filter(c => c.editable);
+  const DEFAULT_NAMES = () => { const o = {}; editableCats.forEach(c => o[c.key] = c.def); return o; };
+  const ZERO = () => { const o = {}; CATKEYS.forEach(k => o[k] = 0); return o; };
+  const scopeLabel = s => s === "decano" ? "Solo Decano" : s === "vice" ? "Solo Vice decano" : "Ambas elecciones";
+  const isRaceActive = (scope, rk) => scope === "ambos" || scope === rk;
+  const activeRaces = scope => RACES.filter(r => isRaceActive(scope, r.key));
+
+  /* ===== nombres y campos ===== */
+  const nameOf = (k, names) => { const c = catOf(k); return (c.editable && names && names[k]) ? names[k] : c.def; };
+  const csvCampo = (k, names) => k ? (raceOf(k).label + " — " + nameOf(k, names)) : "";
+  function keyFromCampo(campoStr, names) {
+    const t = String(campoStr).trim().toLowerCase();
+    for (const c of ALL) { if (csvCampo(c.key, names).trim().toLowerCase() === t) return c.key; }
+    return "";
+  }
+
+  /* ===== totales ===== */
+  const subtotal = (votes, raceKey) => RACES.find(r => r.key === raceKey).cats.reduce((s, c) => s + (votes[c.key] || 0), 0);
+  const tDec = votes => subtotal(votes, "decano");
+  const tVic = votes => subtotal(votes, "vice");
+  const countEv = (events, t) => events.filter(e => e.evento === t).length;
+
+  // Reproduce la bitácora aplicando los deltas en orden -> votos resultantes.
+  function replay(events) {
+    const v = ZERO();
+    for (const e of events) { if (e.delta && v[e.campo] != null) v[e.campo] += e.delta; }
+    return v;
+  }
+
+  /* ===== CSV ===== */
+  const q = s => '"' + String(s).replace(/"/g, '""') + '"';
+  const HEADER = ["seq", "fecha_hora", "iso_utc", "evento", "campo", "delta", ...CATKEYS, "t_decano", "t_vice", "mesa", "operador", "nota"];
+
+  function csvRow(state, o) {
+    const cells = [
+      o.seq ?? "", q(o.local ?? ""), q(o.iso ?? ""), q(o.evento ?? ""), q(o.campo ?? ""), (o.delta ?? ""),
+      ...CATKEYS.map(k => (o.v && o.v[k] != null) ? o.v[k] : ""),
+      (o.tDec ?? ""), (o.tVic ?? ""), q(state.mesa), q(state.operador), q(o.nota ?? ""),
+    ];
+    return cells.join(",");
+  }
+
+  function toCSV(state) {
+    const lines = [HEADER.join(",")];
+    state.events.forEach(e => {
+      lines.push(csvRow(state, {
+        seq: e.seq, local: e.local, iso: e.iso, evento: e.evento,
+        campo: csvCampo(e.campo, state.names), delta: e.delta, v: e.v, tDec: e.tDec, tVic: e.tVic, nota: e.nota,
+      }));
+    });
+    const rs = (campo, nota, v, td, tv) => lines.push(csvRow(state, { evento: "resumen", campo, nota, v, tDec: td, tVic: tv }));
+    const d = tDec(state.votes), vc = tVic(state.votes);
+    rs("Alcance", scopeLabel(state.scope));
+    rs("Total de eventos", String(state.events.length));
+    rs("Sumas (+1)", String(countEv(state.events, "+1")));
+    rs("Correcciones (-1)", String(countEv(state.events, "-1")));
+    rs("Estado", state.closed ? "Cerrada" : (state.opened ? "Abierta" : "Sin abrir"));
+    if (state.scope === "ambos") rs("Cuadre Decano vs Vice", d === vc ? "CUADRA" : ("DIFERENCIA " + Math.abs(d - vc)));
+    rs("Totales finales", "Decano " + d + " / Vice " + vc, { ...state.votes }, d, vc);
+    return lines.join("\r\n") + "\r\n";
+  }
+
+  function parseCSV(text) {
+    const rows = []; let row = [], field = "", inQ = false;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (inQ) {
+        if (ch === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else inQ = false; }
+        else field += ch;
+      } else {
+        if (ch === '"') inQ = true;
+        else if (ch === ",") { row.push(field); field = ""; }
+        else if (ch === "\n") { row.push(field); rows.push(row); row = []; field = ""; }
+        else if (ch === "\r") { /* skip */ }
+        else field += ch;
+      }
+    }
+    if (field.length || row.length) { row.push(field); rows.push(row); }
+    return rows.filter(r => r.length > 1 || (r.length === 1 && r[0].trim() !== ""));
+  }
+
+  function importFromCSV(text) {
+    const rows = parseCSV(text); if (rows.length < 2) return null;
+    const head = rows[0].map(h => h.trim().toLowerCase()); const idx = n => head.indexOf(n);
+    const iSeq = idx("seq"), iLocal = idx("fecha_hora"), iIso = idx("iso_utc"), iEv = idx("evento"),
+          iCampo = idx("campo"), iDelta = idx("delta"), iMesa = idx("mesa"), iOp = idx("operador"), iNota = idx("nota");
+    const catIdx = {}; CATKEYS.forEach(k => catIdx[k] = idx(k));
+    if (iEv < 0 || iDelta < 0) return null;
+
+    let names = DEFAULT_NAMES(), scope = "ambos";
+    for (let r = 1; r < rows.length; r++) {
+      if ((rows[r][iEv] || "").trim() === "apertura" && iNota >= 0) {
+        try { const o = JSON.parse(rows[r][iNota]); editableCats.forEach(c => { if (o[c.key]) names[c.key] = o[c.key]; }); if (o.scope) scope = o.scope; } catch (e) {}
+        break;
+      }
+    }
+
+    const evs = [];
+    for (let r = 1; r < rows.length; r++) {
+      const c = rows[r]; if (c.length < 2) continue;
+      const evento = (c[iEv] || "").trim(); if (evento === "resumen" || evento === "") continue;
+      const delta = parseInt(c[iDelta] || "0", 10) || 0;
+      const campoKey = iCampo >= 0 ? keyFromCampo(c[iCampo], names) : "";
+      const rec = {
+        seq: iSeq >= 0 ? parseInt(c[iSeq], 10) : r, iso: iIso >= 0 ? c[iIso] : "", local: iLocal >= 0 ? c[iLocal] : "",
+        evento, campo: campoKey, delta, nota: iNota >= 0 ? c[iNota] : "",
+      };
+      let hasV = true; const vv = {};
+      for (const k of CATKEYS) { const ix = catIdx[k]; if (ix >= 0 && c[ix] !== "" && c[ix] != null) { vv[k] = parseInt(c[ix], 10) || 0; } else { hasV = false; } }
+      if (hasV) rec.v = vv;
+      evs.push(rec);
+    }
+    evs.sort((a, b) => a.seq - b.seq);
+
+    // Si el texto de 'campo' no se pudo resolver (columna ausente o nombre que no
+    // calza) pero la fila trae el snapshot completo de votos, deducimos qué
+    // categoría cambió comparándolo con el snapshot anterior.
+    let prevSnap = ZERO();
+    for (const e of evs) {
+      if (e.v && !e.campo && e.delta) {
+        const changed = CATKEYS.filter(k => e.v[k] !== prevSnap[k]);
+        if (changed.length === 1) { e.campo = changed[0]; e.delta = e.v[changed[0]] - prevSnap[changed[0]]; }
+      }
+      if (e.v) prevSnap = e.v;
+    }
+
+    let votes; const last = evs[evs.length - 1];
+    if (last && last.v) { votes = { ...last.v }; }
+    else { const v = ZERO(); evs.forEach(e => { if (e.delta && v[e.campo] != null) v[e.campo] += e.delta; e.v = { ...v }; }); votes = v; }
+    evs.forEach(e => { if (e.v) { e.tDec = subtotal(e.v, "decano"); e.tVic = subtotal(e.v, "vice"); } });
+
+    const apertura = evs.find(e => e.evento === "apertura"), cierre = evs.find(e => e.evento === "cierre");
+    const first = rows[1];
+    return {
+      mesa: iMesa >= 0 ? (first[iMesa] || "") : "", operador: iOp >= 0 ? (first[iOp] || "") : "", scope, names,
+      opened: !!apertura || evs.length > 0, closed: !!cierre,
+      openedISO: apertura ? apertura.iso : "", closedISO: cierre ? cierre.iso : "",
+      seq: evs.length ? evs[evs.length - 1].seq : 0, votes, events: evs,
+    };
+  }
+
+  /* ===== verificación de coherencia (anti-manipulación) ===== */
+  function checkCoherence(state) {
+    const issues = []; const evs = state.events; if (evs.length === 0) return issues;
+    const seqSet = new Set(evs.map(e => e.seq));
+    const v = ZERO(); let prev = null;
+    for (const e of evs) {
+      if (prev !== null && e.seq !== prev + 1) {
+        // Si el #prev+1 existe en algún otro lugar de la bitácora, no falta: está
+        // fuera de orden. Solo se reporta "borrada" cuando esa fila no aparece en
+        // ninguna parte.
+        issues.push(seqSet.has(prev + 1)
+          ? `Secuencia desordenada cerca del #${e.seq}.`
+          : `Falta el evento #${prev + 1} en la secuencia (posible fila borrada).`);
+      }
+      prev = e.seq;
+      if (e.delta && v[e.campo] != null) v[e.campo] += e.delta;
+      if (e.v) {
+        let bad = false;
+        for (const k of CATKEYS) { if (e.v[k] !== v[k]) { bad = true; break; } }
+        if (bad) { issues.push(`El evento #${e.seq} tiene totales que no cuadran con su historial (posible edición).`); break; }
+      }
+    }
+    for (const k of CATKEYS) { if (v[k] !== state.votes[k]) { issues.push("El conteo mostrado no coincide con la suma de los eventos de la bitácora."); break; } }
+    return issues.slice(0, 3);
+  }
+
+  return {
+    RACES, ALL, CATKEYS, catOf, raceOf, editableCats, DEFAULT_NAMES, ZERO, scopeLabel,
+    isRaceActive, activeRaces, nameOf, csvCampo, keyFromCampo,
+    subtotal, tDec, tVic, countEv, replay,
+    HEADER, toCSV, parseCSV, importFromCSV, checkCoherence,
+  };
+});
+
+</script>
+<script>
+  const C = window.Conteo;
+
+  // Modelo y funciones puras vienen del módulo (una sola fuente de verdad).
+  const RACES = C.RACES, ALL = C.ALL, CATKEYS = C.CATKEYS, editableCats = C.editableCats;
+  const catOf = C.catOf, raceOf = C.raceOf, DEFAULT_NAMES = C.DEFAULT_NAMES, ZERO = C.ZERO, scopeLabel = C.scopeLabel;
+
+  const LS_KEY = "conteoVotos.v6";
+  let state = {
+    mesa:"", operador:"", scope:"ambos", names:DEFAULT_NAMES(),
+    opened:false, closed:false, openedISO:"", closedISO:"", seq:0,
+    votes:ZERO(), events:[]
+  };
+  let scopeSel="ambos"; // selección en el setup (antes de abrir)
+
+  // Envoltorios finos que aplican el estado actual a las funciones puras.
+  const isRaceActive = rk => C.isRaceActive(state.scope, rk);
+  const activeRaces = () => C.activeRaces(state.scope);
+  const displayName = k => C.nameOf(k, state.names);
+  const subtotal = rk => C.subtotal(state.votes, rk);
+  const tDec = () => C.tDec(state.votes), tVic = () => C.tVic(state.votes);
+  const countEv = t => C.countEv(state.events, t);
+  const toCSV = () => C.toCSV(state);
+  const importFromCSV = C.importFromCSV;
+  const checkCoherence = () => C.checkCoherence(state);
+
+  const fmtLocal = d => d.toLocaleString("es",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit",second:"2-digit"});
+  const canCount = () => state.opened && !state.closed;
+
+  function saveLocal(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){} }
+  function loadLocal(){ try{ const raw=localStorage.getItem(LS_KEY); if(raw){ const o=JSON.parse(raw); if(o&&o.votes){ if(!o.names)o.names=DEFAULT_NAMES(); if(!o.scope)o.scope="ambos"; state=o; } } }catch(e){} }
+
+  /* bitácora */
+  function logEvent(evento, campoKey, delta, nota){
+    if(delta) state.votes[campoKey]+=delta;
+    state.seq++; const now=new Date();
+    state.events.push({ seq:state.seq, iso:now.toISOString(), local:fmtLocal(now),
+      evento, campo:campoKey||"", delta:delta||0, v:{...state.votes}, tDec:tDec(), tVic:tVic(), nota:nota||"" });
+    saveLocal(); render(); backup();
+  }
+
+  /* backup */
+  let fileHandle=null; const supportsFS=("showSaveFilePicker" in window);
+  const statusEl=document.getElementById("status"),statusText=document.getElementById("statusText"),connectBtn=document.getElementById("connect");
+  const IDB={db:null};
+  function idb(){return new Promise(res=>{ if(IDB.db)return res(IDB.db); let r; try{r=indexedDB.open("conteoBackup6",1);}catch(e){return res(null);} r.onupgradeneeded=()=>r.result.createObjectStore("h"); r.onsuccess=()=>{IDB.db=r.result;res(IDB.db);}; r.onerror=()=>res(null); });}
+  async function idbSet(v){const db=await idb();if(!db)return;try{db.transaction("h","readwrite").objectStore("h").put(v,"file");}catch(e){}}
+  async function idbGet(){const db=await idb();if(!db)return null;return new Promise(r=>{try{const g=db.transaction("h").objectStore("h").get("file");g.onsuccess=()=>r(g.result||null);g.onerror=()=>r(null);}catch(e){r(null);}});}
+  let writing=false,pending=false;
+  async function backup(){ if(!fileHandle)return; if(writing){pending=true;return;} writing=true;
+    try{ const w=await fileHandle.createWritable(); await w.write(toCSV()); await w.close(); }
+    catch(e){ setStatus("warn","Backup interrumpido — vuelve a activarlo"); fileHandle=null; connectBtn.textContent="Activar backup CSV"; connectBtn.onclick=connect; }
+    writing=false; if(pending){pending=false;backup();} }
+  function setStatus(kind,text){ statusEl.className="status"+(kind==="on"?" on":kind==="warn"?" warn":""); statusText.innerHTML=text; }
+  async function connect(){ if(!supportsFS){ alert('Este navegador no permite el backup automático en archivo. Usa "Descargar acta CSV", o abre este archivo en Chrome o Edge.'); return; }
+    try{ fileHandle=await window.showSaveFilePicker({ suggestedName:"acta-conteo.csv", types:[{description:"CSV",accept:{"text/csv":[".csv"]}}] });
+      await idbSet(fileHandle); await backup(); setStatus("on",`Backup en tiempo real &rarr; <b>${fileHandle.name}</b>`); connectBtn.textContent="Cambiar archivo de backup"; }catch(e){} }
+  async function tryReconnect(){ if(!supportsFS){ connectBtn.style.display="none"; setStatus("","Guardado automático activo en este navegador"); return; }
+    const h=await idbGet(); if(!h)return; let perm; try{ perm=await h.queryPermission({mode:"readwrite"}); }catch(e){ return; }
+    if(perm==="granted"){ fileHandle=h; setStatus("on",`Backup en tiempo real &rarr; <b>${h.name}</b>`); connectBtn.textContent="Cambiar archivo de backup"; backup(); }
+    else{ setStatus("warn","Backup pausado — pulsa para reconectar"); connectBtn.textContent="Reconectar backup";
+      connectBtn.onclick=async()=>{ try{ if((await h.requestPermission({mode:"readwrite"}))==="granted"){ fileHandle=h; setStatus("on",`Backup en tiempo real &rarr; <b>${h.name}</b>`); connectBtn.textContent="Cambiar archivo de backup"; connectBtn.onclick=connect; backup(); } }catch(e){ connect(); } }; } }
+  function downloadCSV(){ const blob=new Blob([toCSV()],{type:"text/csv;charset=utf-8"}); const a=document.createElement("a");
+    a.href=URL.createObjectURL(blob); a.download=("acta-"+(state.mesa||"mesa")).replace(/[^\w\-]+/g,"_").toLowerCase()+".csv"; a.click(); URL.revokeObjectURL(a.href); }
+
+  /* construcción UI */
+  const racesEl=document.getElementById("races");
+  RACES.forEach(r=>{
+    const panel=document.createElement("div"); panel.className="race"; panel.id="race-panel-"+r.key;
+    const cards=r.cats.map(c=>`
+      <div class="card">
+        <div class="accent" style="background:${c.color}"></div>
+        <div class="name-row"><span class="dot" style="background:${c.color}"></span><span class="name" id="n-${c.key}">${c.def}</span></div>
+        <div class="count" id="c-${c.key}">0</div><div class="pct" id="p-${c.key}">0.0%</div>
+        <div class="bar"><span id="b-${c.key}" style="background:${c.color}"></span></div>
+        <div class="actions"><button class="add" style="background:${c.color}" data-add="${c.key}">+1</button>
+          <button class="sub-btn" data-sub="${c.key}" title="Corregir (menos 1)">&minus;1</button></div>
+      </div>`).join("");
+    const legend=r.cats.map(c=>`
+      <div class="leg-row"><span class="dot" style="background:${c.color}"></span><span class="lname" id="ln-${c.key}">${c.def}</span>
+        <span class="lval"><b id="lv-${c.key}">0</b> &middot; <span id="lp-${c.key}">0.0%</span></span></div>`).join("");
+    panel.innerHTML=`
+      <div class="race-head"><h2>${r.label}</h2><span class="sub">Total: <b id="sub-${r.key}">0</b></span></div>
+      <div class="race-body">
+        <div class="tally" id="tally-${r.key}">${cards}</div>
+        <div class="race-chart">
+          <div class="pie-holder"><svg width="170" height="170" viewBox="0 0 170 170" id="pie-${r.key}"></svg>
+            <div class="pie-center"><span class="n" id="pieTotal-${r.key}">0</span><span class="l">votos</span></div></div>
+          <div class="legend">${legend}</div>
+        </div>
+      </div>`;
+    racesEl.appendChild(panel);
+  });
+
+  const candGroups=document.getElementById("candGroups");
+  RACES.forEach(r=>{
+    const wrap=document.createElement("div"); wrap.id="cand-group-"+r.key;
+    const sub=document.createElement("div"); sub.className="sub-h"; sub.textContent="Candidatos — "+r.label;
+    const fields=document.createElement("div"); fields.className="fields";
+    r.cats.filter(c=>c.editable).forEach(c=>{
+      const f=document.createElement("div"); f.className="field";
+      f.innerHTML=`<label for="in-${c.key}"><span class="dot" style="background:${c.color}"></span>Candidato</label>
+        <input id="in-${c.key}" type="text" autocomplete="off" placeholder="${c.def}" value="${state.names[c.key]||c.def}">`;
+      fields.appendChild(f);
+    });
+    wrap.appendChild(sub); wrap.appendChild(fields); candGroups.appendChild(wrap);
+  });
+
+  // selector de alcance
+  function applyScopeToSetup(){
+    document.querySelectorAll("#scopeSeg button").forEach(b=>b.classList.toggle("active", b.dataset.scope===scopeSel));
+    RACES.forEach(r=>{ const g=document.getElementById("cand-group-"+r.key); if(g) g.classList.toggle("hidden", !(scopeSel==="ambos"||scopeSel===r.key)); });
+  }
+  document.getElementById("scopeSeg").addEventListener("click", e=>{ const b=e.target.closest("button"); if(!b)return; scopeSel=b.dataset.scope; applyScopeToSetup(); });
+
+  /* pie */
+  const CXY=85,R=77,INNER=48;
+  function arcPath(a,b){ if(b-a>=359.999)return `M ${CXY-R} ${CXY} A ${R} ${R} 0 1 1 ${CXY+R} ${CXY} A ${R} ${R} 0 1 1 ${CXY-R} ${CXY} Z`;
+    const a0=a*Math.PI/180,a1=b*Math.PI/180,x0=CXY+R*Math.cos(a0),y0=CXY+R*Math.sin(a0),x1=CXY+R*Math.cos(a1),y1=CXY+R*Math.sin(a1),large=(b-a)>180?1:0;
+    return `M ${CXY} ${CXY} L ${x0} ${y0} A ${R} ${R} 0 ${large} 1 ${x1} ${y1} Z`; }
+  function drawPie(r){
+    const pie=document.getElementById("pie-"+r.key); const tot=r.cats.reduce((s,c)=>s+state.votes[c.key],0);
+    document.getElementById("pieTotal-"+r.key).textContent=tot; pie.innerHTML="";
+    if(tot===0){ const c=document.createElementNS("http://www.w3.org/2000/svg","circle"); c.setAttribute("cx",CXY);c.setAttribute("cy",CXY);c.setAttribute("r",R);c.setAttribute("fill","#1F2A3B"); pie.appendChild(c); }
+    else{ let ang=0; r.cats.forEach(c=>{ const val=state.votes[c.key]; if(val===0)return; const sweep=val/tot*360; const p=document.createElementNS("http://www.w3.org/2000/svg","path"); p.setAttribute("d",arcPath(ang,ang+sweep)); p.setAttribute("fill",c.color); pie.appendChild(p); ang+=sweep; }); }
+    const hole=document.createElementNS("http://www.w3.org/2000/svg","circle"); hole.setAttribute("cx",CXY);hole.setAttribute("cy",CXY);hole.setAttribute("r",INNER);hole.setAttribute("fill","#18202E"); pie.appendChild(hole);
+  }
+
+  const evLabel = e => e==="apertura"?"Apertura":e==="cierre"?"Cierre":e==="importacion"?"Importación":e==="+1"?"+1":e==="-1"?"Corrección":e;
+
+  function render(){
+    RACES.forEach(r=>{
+      const panel=document.getElementById("race-panel-"+r.key);
+      const active=isRaceActive(r.key);
+      panel.classList.toggle("hidden", state.opened && !active); // ocultar la desactivada tras abrir
+      const tot=r.cats.reduce((s,c)=>s+state.votes[c.key],0);
+      document.getElementById("sub-"+r.key).textContent=tot;
+      r.cats.forEach(c=>{ const v=state.votes[c.key], pct=tot?(v/tot*100):0;
+        document.getElementById("n-"+c.key).textContent=displayName(c.key);
+        document.getElementById("ln-"+c.key).textContent=displayName(c.key);
+        document.getElementById("c-"+c.key).textContent=v;
+        document.getElementById("p-"+c.key).textContent=pct.toFixed(1)+"%";
+        document.getElementById("b-"+c.key).style.width=pct+"%";
+        document.getElementById("lv-"+c.key).textContent=v;
+        document.getElementById("lp-"+c.key).textContent=pct.toFixed(1)+"%"; });
+      drawPie(r);
+      const tally=document.getElementById("tally-"+r.key);
+      if(canCount() && active){ tally.classList.remove("locked"); const ln=tally.querySelector(".lock-note"); if(ln)ln.remove(); }
+      else{ tally.classList.add("locked"); let ln=tally.querySelector(".lock-note"); if(!ln){ ln=document.createElement("div"); ln.className="lock-note"; tally.appendChild(ln); }
+        ln.textContent=state.closed?"Mesa cerrada":(active?"Abre la mesa para comenzar":"Elección desactivada"); }
+    });
+
+    // cuadre: solo con ambas elecciones
+    const cuadreEl=document.getElementById("cuadre");
+    if(state.scope==="ambos"){
+      cuadreEl.classList.remove("hidden");
+      const d=tDec(), v=tVic(), diff=Math.abs(d-v);
+      document.getElementById("cuDec").textContent=d;
+      document.getElementById("cuVice").textContent=v;
+      const cb=document.getElementById("cuBadge"), hint=document.getElementById("cuHint");
+      if(diff===0){ cb.className="cb ok"; cb.textContent="Cuadra"; hint.textContent="Cada votante suma uno en Decano y uno en Vice decano: ambos totales deben terminar iguales."; }
+      else{ cb.className="cb diff"; cb.textContent="Diferencia: "+diff; const menor=d<v?"Decano":"Vice decano"; hint.textContent=`Falta${diff>1?"n":""} ${diff} en ${menor}. Es normal mientras registras cada boleta; al cerrar deben quedar iguales.`; }
+    } else { cuadreEl.classList.add("hidden"); }
+
+    // estado mesa
+    const setup=document.getElementById("setup"), strip=document.getElementById("mesaStrip");
+    if(state.opened){
+      setup.classList.add("hidden"); strip.classList.remove("hidden");
+      document.getElementById("mMesa").textContent=state.mesa||"—";
+      document.getElementById("mAlcance").textContent=scopeLabel(state.scope);
+      document.getElementById("mOperador").textContent=state.operador||"—";
+      document.getElementById("mApertura").textContent=state.openedISO?fmtLocal(new Date(state.openedISO)):"—";
+      const badge=document.getElementById("mBadge"),cierreWrap=document.getElementById("mCierreWrap"),closeBtn=document.getElementById("closeMesa");
+      if(state.closed){ badge.textContent="Cerrada"; badge.className="badge closed"; cierreWrap.classList.remove("hidden");
+        document.getElementById("mCierre").textContent=state.closedISO?fmtLocal(new Date(state.closedISO)):"—"; closeBtn.classList.add("hidden"); }
+      else{ badge.textContent="Abierta"; badge.className="badge open"; cierreWrap.classList.add("hidden"); closeBtn.classList.remove("hidden"); }
+    }else{ setup.classList.remove("hidden"); strip.classList.add("hidden"); }
+
+    // bitácora
+    const body=document.getElementById("logBody"),empty=document.getElementById("logEmpty");
+    document.getElementById("logMeta").innerHTML=`<b>${state.events.length}</b> eventos · <b>${countEv("+1")}</b> sumas · <b>${countEv("-1")}</b> correcciones`;
+    body.innerHTML="";
+    if(state.events.length===0){ empty.classList.remove("hidden"); }
+    else{ empty.classList.add("hidden");
+      state.events.forEach(e=>{ const tr=document.createElement("tr");
+        const cls=e.evento==="apertura"?"apertura":e.evento==="cierre"?"cierre":e.evento==="importacion"?"imp":"";
+        const dtxt=e.delta>0?"+"+e.delta:(e.delta<0?String(e.delta):"—"); const dcls=e.delta>0?"pos":(e.delta<0?"neg":"");
+        const campoTxt=e.campo?(raceOf(e.campo).label+" · "+displayName(e.campo)):"—";
+        tr.innerHTML=`<td class="num">${e.seq}</td><td>${e.local}</td><td><span class="ev ${cls}">${evLabel(e.evento)}</span></td>
+          <td>${campoTxt}</td><td class="num delta ${dcls}">${dtxt}</td><td class="num">${e.tDec} / ${e.tVic}</td>`;
+        body.appendChild(tr); });
+      const sc=document.querySelector(".log-scroll"); sc.scrollTop=sc.scrollHeight; }
+
+    // alerta de coherencia
+    const issues=checkCoherence();
+    const banner=document.getElementById("warnBanner"), wt=document.getElementById("warnText");
+    if(issues.length){ banner.classList.remove("hidden"); wt.innerHTML=`<b>Posible alteración detectada.</b> El registro no es coherente:<br>· ${issues.join("<br>· ")}`; }
+    else{ banner.classList.add("hidden"); wt.innerHTML=""; }
+  }
+
+  /* eventos UI */
+  racesEl.addEventListener("click", e=>{ if(!canCount())return; const add=e.target.dataset.add, sub=e.target.dataset.sub;
+    const key=add||sub; if(key && !isRaceActive(catOf(key).race)) return;   // ignora clics en elección desactivada
+    if(add){ logEvent("+1",add,+1); } if(sub && state.votes[sub]>0){ logEvent("-1",sub,-1); } });
+
+  document.getElementById("openMesa").onclick=()=>{
+    const mesa=document.getElementById("inMesa").value.trim();
+    if(!mesa){ alert("Ingresa la identificación de la mesa para abrir."); document.getElementById("inMesa").focus(); return; }
+    state.scope=scopeSel;
+    editableCats.forEach(c=>{ const val=document.getElementById("in-"+c.key).value.trim(); state.names[c.key]= val || c.def; });
+    state.mesa=mesa; state.operador=document.getElementById("inOperador").value.trim();
+    state.opened=true; state.openedISO=new Date().toISOString();
+    const namesJSON={scope:state.scope}; editableCats.forEach(c=>namesJSON[c.key]=state.names[c.key]);
+    logEvent("apertura","",0, JSON.stringify(namesJSON));
+  };
+
+  document.getElementById("closeMesa").onclick=()=>{ if(!canCount())return;
+    const both=state.scope==="ambos"; const d=tDec(), v=tVic();
+    let res=`RESUMEN DE CIERRE — ${state.mesa}\n(${scopeLabel(state.scope)})\n\n`;
+    activeRaces().forEach(r=>{ const tot=r.cats.reduce((s,c)=>s+state.votes[c.key],0);
+      res+=`${r.label} (total ${tot}):\n`;
+      r.cats.forEach(c=>{ const vv=state.votes[c.key], pct=tot?(vv/tot*100):0; res+=`   ${displayName(c.key)}: ${vv}  (${pct.toFixed(1)}%)\n`; });
+      res+="\n"; });
+    if(both){ if(d!==v){ res+=`⚠ ATENCIÓN: los totales NO cuadran (Decano ${d} vs Vice decano ${v}, diferencia ${Math.abs(d-v)}).\nCada votante debería sumar en ambas elecciones.\n\n`; }
+      else{ res+=`Cuadre correcto: ${d} votantes en ambas elecciones.\n\n`; } }
+    res+=`Sumas (+1): ${countEv("+1")} · Correcciones (-1): ${countEv("-1")} · Eventos: ${state.events.length}\n\n`;
+    res+=`Al cerrar se registra la hora y ya no se podrán agregar ni corregir votos.\n¿Confirmar el cierre de la mesa?`;
+    if(confirm(res)){ state.closed=true; state.closedISO=new Date().toISOString();
+      logEvent("cierre","",0, (both?`Decano ${d} / Vice ${v} · ${d===v?"cuadra":"DIFERENCIA "+Math.abs(d-v)}`:scopeLabel(state.scope))+` · +1:${countEv("+1")} -1:${countEv("-1")}`); }
+  };
+
+  connectBtn.onclick=connect;
+  document.getElementById("download").onclick=downloadCSV;
+  document.getElementById("importBtn").onclick=()=>document.getElementById("importFile").click();
+  document.getElementById("importFile").addEventListener("change", ev=>{ const f=ev.target.files[0]; if(!f)return; const rd=new FileReader();
+    rd.onload=()=>{ const imported=importFromCSV(String(rd.result)); if(!imported){ alert("No se pudo leer la bitácora de ese archivo."); return; }
+      if(confirm("¿Reemplazar la mesa y el conteo actuales con el contenido del CSV?")){ state=imported; if(!state.names)state.names=DEFAULT_NAMES(); if(!state.scope)state.scope="ambos"; scopeSel=state.scope; saveLocal(); render(); backup();
+        const iss=checkCoherence(); if(iss.length) alert("Aviso: el archivo importado presenta inconsistencias:\n\n· "+iss.join("\n· ")); } };
+    rd.readAsText(f); ev.target.value=""; });
+
+  document.getElementById("reset").onclick=()=>{ if(confirm("Esto borra la mesa, el conteo y toda la bitácora para empezar de cero. ¿Continuar?")){
+      state={mesa:"",operador:"",scope:"ambos",names:DEFAULT_NAMES(),opened:false,closed:false,openedISO:"",closedISO:"",seq:0,votes:ZERO(),events:[]};
+      scopeSel="ambos"; saveLocal(); editableCats.forEach(c=>{ const el=document.getElementById("in-"+c.key); if(el)el.value=c.def; });
+      document.getElementById("inMesa").value=""; document.getElementById("inOperador").value=""; applyScopeToSetup(); render(); backup(); } };
+
+  /* arranque */
+  loadLocal(); scopeSel=state.scope||"ambos";
+  editableCats.forEach(c=>{ const el=document.getElementById("in-"+c.key); if(el) el.value=state.names[c.key]||c.def; });
+  applyScopeToSetup(); render(); tryReconnect();
+</script>
+</body>
+</html>

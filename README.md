@@ -15,11 +15,28 @@ servidor ni instalación, y va guardando cada voto como un evento append-only
 | `conteo-votos.html` | La aplicación. Se abre en el navegador (Chrome o Edge para el backup en tiempo real). |
 | `conteo.js` | **Lógica pura** (modelo, CSV, importación, coherencia, cuadre). Sin DOM. La usan tanto el HTML como las pruebas. |
 | `conteo.test.js` | Pruebas de la lógica, en Node. |
+| `conteo-votos-standalone.html` | **Versión de un solo archivo** (HTML-only), para compartir o mover sin depender de `conteo.js`. Ver más abajo. |
 | `README.md` | Este archivo. |
 
 > **Importante:** `conteo-votos.html` y `conteo.js` deben estar **en la misma carpeta**.
 > El HTML carga `conteo.js`; si falta, muestra un aviso y no arranca. Al mover o
-> compartir la app, lleva siempre los dos archivos juntos.
+> compartir la app, lleva siempre los dos archivos juntos. Si necesitás un solo
+> archivo, usá `conteo-votos-standalone.html` en su lugar.
+
+## Versión de un solo archivo (`conteo-votos-standalone.html`)
+
+Es la misma app, pero con el contenido de `conteo.js` **embebido** dentro de un
+`<script>` inline en vez de cargarlo con `<script src="conteo.js">`. Sirve para
+repartir un único archivo `.html` (por mail, USB, etc.) sin riesgo de que se
+separe de su `conteo.js` y deje de arrancar.
+
+- Es un **archivo generado**, no se edita a mano: es una copia textual de
+  `conteo.js` pegada dentro de `conteo-votos.html`. Si cambia la lógica en
+  `conteo.js` (o el HTML de la interfaz), hay que **regenerar** este archivo,
+  no tocar su lógica directamente.
+- `conteo.js` (y sus pruebas en `conteo.test.js`) siguen siendo la única
+  fuente de verdad de la lógica; este archivo es solo un empaquetado para
+  distribución.
 
 ## Por qué está separado en dos archivos
 
